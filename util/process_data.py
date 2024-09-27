@@ -1,5 +1,4 @@
 import pandas as pd
-from datetime import datetime
 
 class ProcessData:
     def __init__(self) -> None:
@@ -39,7 +38,9 @@ class ProcessData:
         for column in columns_to_int:
             dataframe[column] = pd.to_numeric(dataframe[column], downcast='integer', errors='coerce')
         
-        dataframe['DATA'] = pd.to_datetime(dataframe['DATA'], format="%d/%m/%Y").dt.strftime("%Y/%m/%d")
+        dataframe['DATA'] = pd.to_datetime(dataframe['DATA'], format="%d/%m/%Y")
+        dataframe['DATA'] = dataframe['DATA'].apply(lambda x: x.replace(hour=0, minute=0, second=0, microsecond=0))
+        
         dataframe['HORA'] = dataframe['HORA'].astype(str) + ' UTC'
         
         return dataframe
