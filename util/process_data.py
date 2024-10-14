@@ -9,38 +9,26 @@ class ProcessData:
             'PRESSAO_ATMOSFERICA_MAX', 'PRESSAO_ATMOSFERICA_MIN', 'VENTO_VELOCIDADE', 
             'VENTO_DIRECAO', 'VENTO_RAJADA_MAX', 'RADIACAO_GLOBAL', 'PRECIPITACAO_TOTAL'
         ]
+        
+        self.COLUMNS_TO_NUMERIC = [
+            'PRECIPITACAO_TOTAL', 'PRESSAO_ATMOSFERICA_NIVEL_ESTACAO', 'PRESSAO_ATMOSFERICA_MAX', 
+            'PRESSAO_ATMOSFERICA_MIN', 'RADIACAO_GLOBAL', 'TEMP_BULBO_SECO', 'TEMP_PONTO_ORVALHO', 
+            'TEMP_MAX', 'TEMP_MIN', 'TEMP_ORVALHO_MAX', 'TEMP_ORVALHO_MIN', 'VENTO_RAJADA_MAX', 
+            'VENTO_VELOCIDADE', 'UMIDADE_RELATIVA_MAX', 'UMIDADE_RELATIVA_MIN', 
+            'UMIDADE_RELATIVA', 'VENTO_DIRECAO'
+        ]
     
     def process_data(self, dataframe: pd.DataFrame) -> pd.DataFrame:
-        columns_name = self.DEFAULT_COLUMNS
+        dataframe = dataframe.iloc[:, :len(self.DEFAULT_COLUMNS)]
+        dataframe.columns = self.DEFAULT_COLUMNS
         
-        dataframe = dataframe.iloc[:, :len(columns_name)]
-        dataframe.columns = columns_name
-        
-        columns_to_numeric = [
-            'TEMP_BULBO_SECO', 'TEMP_MAX', 'TEMP_MIN', 'UMIDADE_RELATIVA',
-            'UMIDADE_RELATIVA_MAX', 'UMIDADE_RELATIVA_MIN', 'TEMP_PONTO_ORVALHO', 
-            'TEMP_ORVALHO_MAX', 'TEMP_ORVALHO_MIN', 'PRESSAO_ATMOSFERICA_NIVEL_ESTACAO',
-            'PRESSAO_ATMOSFERICA_MAX', 'PRESSAO_ATMOSFERICA_MIN', 'VENTO_VELOCIDADE', 
-            'VENTO_DIRECAO', 'VENTO_RAJADA_MAX', 'RADIACAO_GLOBAL', 'PRECIPITACAO_TOTAL'
-        ]
-        
-        for column in columns_to_numeric:
+        for column in self.COLUMNS_TO_NUMERIC:
             dataframe[column] = pd.to_numeric(dataframe[column].str.replace(',', '.'), errors='coerce')
         
-     
-        columns_to_int = [
-            'UMIDADE_RELATIVA_MAX',
-            'UMIDADE_RELATIVA_MIN',
-            'UMIDADE_RELATIVA',
-            'VENTO_DIRECAO'
-        ]
-        
-        for column in columns_to_int:
-            dataframe[column] = pd.to_numeric(dataframe[column], downcast='integer', errors='coerce')
-        
-        dataframe['DATA'] = pd.to_datetime(dataframe['DATA'], format="%d/%m/%Y")
-        dataframe['DATA'] = dataframe['DATA'].apply(lambda x: x.replace(hour=0, minute=0, second=0, microsecond=0))
+        dataframe['DATA'] = pd.to_datetime(dataframe['DATA'], format="%d/%m/%Y").dt.strftime("%Y-%m-%d")
         
         dataframe['HORA'] = dataframe['HORA'].astype(str) + ' UTC'
+        
+        dataframe = dataframe.applymap(lambda x: None if pd.isna(x) else x)
         
         return dataframe
