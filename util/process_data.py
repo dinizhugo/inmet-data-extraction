@@ -3,7 +3,7 @@ import pandas as pd
 class ProcessData:
     def __init__(self) -> None:
         self.DEFAULT_COLUMNS = [
-            'DATA', 'HORA', 'TEMP_BULBO_SECO', 'TEMP_MAX', 'TEMP_MIN', 'UMIDADE_RELATIVA', 
+            'HORA', 'TEMP_BULBO_SECO', 'TEMP_MAX', 'TEMP_MIN', 'UMIDADE_RELATIVA', 
             'UMIDADE_RELATIVA_MAX', 'UMIDADE_RELATIVA_MIN', 'TEMP_PONTO_ORVALHO', 
             'TEMP_ORVALHO_MAX', 'TEMP_ORVALHO_MIN', 'PRESSAO_ATMOSFERICA_NIVEL_ESTACAO', 
             'PRESSAO_ATMOSFERICA_MAX', 'PRESSAO_ATMOSFERICA_MIN', 'VENTO_VELOCIDADE', 
@@ -25,10 +25,8 @@ class ProcessData:
         for column in self.COLUMNS_TO_NUMERIC:
             dataframe[column] = pd.to_numeric(dataframe[column].str.replace(',', '.'), errors='coerce')
         
-        dataframe['DATA'] = pd.to_datetime(dataframe['DATA'], format="%d/%m/%Y").dt.strftime("%Y-%m-%d")
-        
         dataframe['HORA'] = dataframe['HORA'].astype(str) + ' UTC'
         
-        dataframe = dataframe.applymap(lambda x: None if pd.isna(x) else x)
+        dataframe = dataframe.map(lambda x: None if pd.isna(x) else x)
         
         return dataframe

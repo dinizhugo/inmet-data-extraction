@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 from time import sleep
 import pandas as pd
+import json
 from util.process_data import ProcessData
 from database.mongo import MongoDB
 
@@ -68,28 +69,33 @@ class InmetDataExtractor:
 
             table = soup.find('table', attrs={'class': 'ui blue celled striped unstackable table'})
             
-            json_data = self._convert_data(table)
+            json_data = self._convert_data(table, station_number, date)
             
             if json_data:
-                for data in json_data:
-                    self.DB.insert_data_inmet(collection_name, station_number, data)
+                # print(json.dumps(json_data, indent=4, ensure_ascii=False))
+                self.DB.insert_data_inmet(collection_name, json_data)
 
         except Exception as e:
             print(f"[ERROR] An error occurred: {e}")
     
-    def _convert_data(self, table) -> dict:
+    def _convert_data(self, table, station_code, date) -> dict:
         try:
+            data = {}
             rows = table.find_all('tr')
-
-            table_data = []
-
+            daily_register = {
+                "CODIGO": station_code,
+                "DATA": datetime.strptime(date, "%d/%m/%Y").strftime("%Y-%m-%d"),
+                "MEDICOES": []
+            }
+            
+            temp = []
             for row in rows[2:]:
                 cols = row.find_all('td')
-                cols = [col.text.strip() for col in cols]
-                table_data.append(cols)
+                cols = [col.text.strip() for col in cols[1:]]
+                temp.append(cols)
 
-            df = pd.DataFrame(table_data, columns=[
-                'DATA', 'HORA', 'TEMP_BULBO_SECO', 'TEMP_MAX', 'TEMP_MIN', 'UMIDADE_RELATIVA', 
+            df = pd.DataFrame(temp, columns=[
+                'HORA', 'TEMP_BULBO_SECO', 'TEMP_MAX', 'TEMP_MIN', 'UMIDADE_RELATIVA', 
                 'UMIDADE_RELATIVA_MAX', 'UMIDADE_RELATIVA_MIN', 'TEMP_PONTO_ORVALHO', 
                 'TEMP_ORVALHO_MAX', 'TEMP_ORVALHO_MIN', 'PRESSAO_ATMOSFERICA_NIVEL_ESTACAO', 
                 'PRESSAO_ATMOSFERICA_MAX', 'PRESSAO_ATMOSFERICA_MIN', 'VENTO_VELOCIDADE', 
@@ -98,10 +104,19 @@ class InmetDataExtractor:
             
             processor = ProcessData()
             df = processor.process_data(df)
-
-            json_data = df.to_dict(orient='records')
             
-            return json_data
+            
+            for record in df.to_dict(orient='records'):
+                daily_register["MEDICOES"].append({k: v for k, v in record.items()})
+            
+            averages = df.mean(numeric_only=True).to_dict()
+            for key, value in averages.items():
+                daily_register[f"MEDIA_{key.upper()}"] = None if pd.isna(value) else value
+            
+            key = f"{station_code}_{datetime.strptime(date, "%d/%m/%Y").strftime("%Y-%m-%d")}"
+            data[key] = daily_register
+            
+            return data
 
         except Exception as e:
             print(f"[ERROR] An error occurred while converting data: {e}")

@@ -31,25 +31,20 @@ class MongoDB:
             print("[ERROR] Não foi possível acessar a coleção com esse nome.\n")
             return None
     
-    def insert_data_inmet(self, collection_name:str, key:str, data:dict):
+    def insert_data_inmet(self, collection_name:str, data:dict):
         collection = self.get_collection(collection_name)
-        station = collection.find_one({"CODIGO": key})
         
-        if not station:
-            print(f"Estação com código {key} não encontrada!")
-            return
-        
-        existing_data = station.get("DADOS", [])
-
-        # Verifica se o valor de "HORA" do novo dado já está presente
-        for record in existing_data:
-            if record["HORA"] == data["HORA"] and record["DATA"] == data["DATA"]:
-                print(f"Dados para a hora {data['HORA']} e data {data['DATA']} já existem.")
-                return
-        
-        # Se não houver duplicata, insere o novo dado
-        collection.update_one(
-            {"CODIGO": key},
-            {"$push": {"DADOS": data}}
-        )
-        print(f"Novo dado inserido para a estação {key}: {data['DATA']} {data['HORA']}")
+        if collection is not None:
+            try:
+                documentos = []
+                for chave, valor in data.items():
+                    documento = valor
+                    documento['_id'] = chave
+                    documentos.append(documento)
+                
+                print("Inserindo dados...")
+                collection.insert_many(documentos)
+                print(f">> O documento foi inserido no banco {collection_name}.\n")
+            except Exception as e:
+                print(f"Erro ao inserir os dados: {str(e)}")
+        print("============================================")
